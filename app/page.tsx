@@ -1,71 +1,167 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback, type MouseEvent as RE } from "react";
+import { motion, useInView, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
-const PROJECTS = [
+/* ═══════════════════════════════════════════════
+   DATA
+   ═══════════════════════════════════════════════ */
+
+const CASES = [
   {
-    number: "01",
     name: "Raaz",
-    category: "Mobile App",
-    headline: "A dating app built to scale — PostGIS discovery, real-time chat, subscription paywalls.",
-    description:
-      "Production-grade dating platform: location-based discovery via PostGIS, WhatsApp-style messaging with edit/delete/reply, gender-tiered subscription paywalls, Razorpay auto-pay with trial periods, FCM push notifications, full security audit before Play Store submission.",
-    outcome: "Live on Play Store",
-    tech: ["Flutter", "Riverpod", "Supabase", "PostGIS", "RevenueCat", "Razorpay", "FCM"],
-    link: "",
+    problem: "A founder needed a dating app on the Play Store in weeks — location matching, real-time chat, subscription payments. Agencies quoted 6 months and $60k.",
+    architecture: "PostGIS geospatial discovery with progressive-radius matching. Supabase Realtime for full chat with typing indicators and read receipts. HMAC-verified Razorpay webhooks with replay protection.",
+    outcome: "Shipped to Play Store in under 4 weeks. 32 database tables, 6 edge functions, 55+ backend-controlled config keys — zero app rebuilds needed for pricing or feature changes.",
+    tech: ["Flutter", "Supabase", "PostGIS", "Razorpay"],
   },
   {
-    number: "02",
-    name: "Lumii",
-    category: "AI · Mobile",
-    headline: "AI photo enhancement — CodeFormer face restoration at consumer scale.",
-    description:
-      "End-to-end AI photo app: image pick, compress, submit to Fal.ai, async job processing, before/after slider. Enhancement history, RevenueCat subscription paywall, Firebase Auth with Google Sign-In, Crashlytics, Supabase backend with auto-expiring storage.",
-    outcome: "Production-ready",
-    tech: ["Flutter", "Riverpod", "Fal.ai", "Supabase", "Firebase", "RevenueCat"],
-    link: "",
+    name: "GoodLooksAI",
+    problem: "An AI portrait product was chaining multiple models but latency was killing the user experience. Downloading images between stages was the bottleneck.",
+    architecture: "Built a Hot-Chain pipeline — chaining fal.ai media URLs directly between AI stages (InstantID face swap then LoRA styling) without any intermediate downloads. Migrated generation to Gemini 3 Pro.",
+    outcome: "Play Store live. Admin panel (92K lines of TypeScript) shipped in a single day. Image delivery via CloudFront CDN at global edge.",
+    tech: ["React Native", "Fal.ai", "Gemini 3", "DynamoDB"],
   },
   {
-    number: "03",
     name: "Astravoro",
-    category: "Web · E-Commerce",
-    headline: "Full e-commerce storefront — product catalogue to Razorpay checkout.",
-    description:
-      "Complete smart home e-commerce platform: dynamic product catalogue, category filtering, cart state, dual-gateway checkout (Razorpay + Stripe), order management in Supabase, comprehensive analytics schema. Deployed and live.",
-    outcome: "Live on Vercel",
-    tech: ["Next.js", "TypeScript", "TailwindCSS", "Supabase", "Razorpay", "Stripe"],
+    problem: "A smart home brand needed a complete e-commerce store for both US and Indian buyers — with a two-week hard deadline and zero existing infrastructure.",
+    architecture: "Next.js 16 with server-rendered product pages, Zustand cart, dual payment gateway (Stripe for USD, Razorpay for INR), Supabase backend with full order management.",
+    outcome: "Live at astravoro.com. 20 products across 5 categories. Dual-market checkout. Shipped in 14 days from first commit to production.",
+    tech: ["Next.js", "Supabase", "Stripe", "Razorpay"],
     link: "https://astravoro.com",
   },
 ];
 
 const MORE_APPS = [
-  { name: "Matcho", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.macho.app" },
-  { name: "Baatein", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.baatein" },
-  { name: "Beauty AI", client: "Alnico", link: "" },
-  { name: "Goodlooks AI", client: "Alnico", link: "" },
-  { name: "Tarot AI", client: "Alnico", link: "https://play.google.com/store/apps/details?id=ai.onlineastrology.tarot" },
-  { name: "Bharat Poster", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.sangathanposter" },
-  { name: "Sangathan", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.sangathan.app" },
-  { name: "Islamic Quotes", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.islamicquotes" },
-  { name: "Indian Poster", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.indianposters.app" },
-  { name: "Polimart", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.banner.polimart" },
-  { name: "Suvichar", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.suvichar.photo" },
-  { name: "Gyanify", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.gumbo.learning" },
-  { name: "Panchayat Poster", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.panchayat.poster" },
-  { name: "Suno Stories", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.sunostories.app" },
-  { name: "English Guru", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.gumbo.english" },
-  { name: "Business Banner", client: "Gumbo Tech", link: "https://play.google.com/store/apps/details?id=com.business.banner" },
+  { name: "BeautyAI", cat: "AI", client: "Alnico", link: "" },
+  { name: "TarotAI", cat: "AI", client: "Alnico", link: "https://play.google.com/store/apps/details?id=ai.onlineastrology.tarot" },
+  { name: "Matcho", cat: "Dating", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.macho.app" },
+  { name: "Baatein", cat: "Social", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.baatein" },
+  { name: "Bharat Poster", cat: "Creative", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.sangathanposter" },
+  { name: "Sangathan", cat: "Creative", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.sangathan.app" },
+  { name: "Islamic Quotes", cat: "Creative", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.alnico.islamicquotes" },
+  { name: "Indian Poster", cat: "Creative", client: "Alnico", link: "https://play.google.com/store/apps/details?id=com.indianposters.app" },
+  { name: "Polimart", cat: "Creative", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.banner.polimart" },
+  { name: "Suvichar", cat: "Creative", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.suvichar.photo" },
+  { name: "Gyanify", cat: "Education", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.gumbo.learning" },
+  { name: "Panchayat Poster", cat: "Creative", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.panchayat.poster" },
+  { name: "Suno Stories", cat: "Kids", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.sunostories.app" },
+  { name: "English Guru", cat: "Education", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.gumbo.english" },
+  { name: "Business Banner", cat: "Creative", client: "Gumbo", link: "https://play.google.com/store/apps/details?id=com.business.banner" },
 ];
 
-const TECH = [
-  "Flutter", "React Native", "Next.js", "Node.js", "TypeScript",
-  "Supabase", "PostgreSQL", "PostGIS", "Firebase", "AWS",
-  "Razorpay", "Stripe", "RevenueCat", "Fal.ai", "Vertex AI",
-  "FCM", "DynamoDB", "S3", "CloudFront", "Cognito",
-];
+const MARQUEE = ["Flutter", "React Native", "Next.js", "TypeScript", "Supabase", "PostgreSQL", "PostGIS", "Firebase", "AWS", "Razorpay", "Stripe", "RevenueCat", "Fal.ai", "Vertex AI", "DynamoDB", "CloudFront", "Cognito", "FCM"];
+
+/* ═══ HOOKS ═══ */
+
+function useCounter(end: number, dur = 1800) {
+  const [v, setV] = useState(0);
+  const [go, setGo] = useState(false);
+  const start = useCallback(() => setGo(true), []);
+  useEffect(() => {
+    if (!go) return;
+    let c = 0; const s = 50;
+    const iv = setInterval(() => { c += end / s; if (c >= end) { setV(end); clearInterval(iv); } else setV(Math.floor(c)); }, dur / s);
+    return () => clearInterval(iv);
+  }, [go, end, dur]);
+  return { v, start };
+}
+
+/* ═══ ANIM ═══ */
+
+const ease = [0.16, 1, 0.3, 1] as const;
+const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: (d: number) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: d, ease } }) };
+const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
+const staggerItem = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } };
+
+/* ═══ COMPONENTS ═══ */
+
+function MagneticButton({ children, href, style: s, className, onClick }: { children: React.ReactNode; href?: string; style?: React.CSSProperties; className?: string; onClick?: () => void }) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 200, damping: 20 });
+  const sy = useSpring(y, { stiffness: 200, damping: 20 });
+  function handleMove(e: RE<HTMLAnchorElement>) {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    x.set((e.clientX - r.left - r.width / 2) * 0.15);
+    y.set((e.clientY - r.top - r.height / 2) * 0.15);
+  }
+  function handleLeave() { x.set(0); y.set(0); }
+  return <motion.a ref={ref} href={href} onClick={onClick} onMouseMove={handleMove} onMouseLeave={handleLeave} style={{ x: sx, y: sy, ...s }} className={className}>{children}</motion.a>;
+}
+
+function WordReveal({ text, delay = 0 }: { text: string; delay?: number }) {
+  return (
+    <span style={{ display: "inline" }}>
+      {text.split(" ").map((w, i) => (
+        <span key={i} style={{ display: "inline-block", overflow: "hidden", marginRight: "0.3em" }}>
+          <motion.span style={{ display: "inline-block" }}
+            initial={{ y: "110%" }} animate={{ y: 0 }}
+            transition={{ duration: 0.7, delay: delay + i * 0.04, ease }}>{w}</motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function BentoCard({ children, style: s, className, span2 }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; span2?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const [hovered, setHovered] = useState(false);
+
+  function handleMove(e: RE<HTMLDivElement>) {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    mouseX.set(e.clientX - r.left);
+    mouseY.set(e.clientY - r.top);
+  }
+
+  return (
+    <motion.div ref={ref} onMouseMove={handleMove} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      className={className} style={{
+        position: "relative", overflow: "hidden", borderRadius: 20,
+        background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
+        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+        transition: "border-color 0.3s",
+        ...(hovered ? { borderColor: "rgba(255,255,255,0.12)" } : {}),
+        ...s,
+      }}>
+      <motion.div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: useTransform(
+          [mouseX, mouseY],
+          ([x, y]) => `radial-gradient(400px circle at ${x}px ${y}px, rgba(255,255,255,0.06), transparent 60%)`
+        ),
+        opacity: hovered ? 1 : 0,
+        transition: "opacity 0.3s",
+      }} />
+      <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══ SHORTHAND ═══ */
+
+const D = "var(--font-display)";
+const B = "var(--font-body)";
+
+/* ═══════════════════════════════════════════════
+   PAGE
+   ═══════════════════════════════════════════════ */
 
 export default function Home() {
   const [copied, setCopied] = useState(false);
+  const statsRef = useRef(null);
+  const statsVis = useInView(statsRef, { once: true, amount: 0.3 });
+  const c1 = useCounter(22);
+  useEffect(() => { if (statsVis) c1.start(); }, [statsVis, c1]);
+  const { scrollYProgress } = useScroll();
+  const auroraY = useTransform(scrollYProgress, [0, 1], [0, -200]);
 
   function copyEmail() {
     navigator.clipboard.writeText("adityaravindranath12@gmail.com");
@@ -76,534 +172,454 @@ export default function Home() {
   return (
     <>
       <style>{`
-        html { scroll-behavior: smooth; }
-        ::selection { background: var(--accent); color: #000; }
-        ::-webkit-scrollbar { width: 2px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--text-muted); }
+        ::selection{background:#fff;color:#000}
+        ::-webkit-scrollbar{width:2px}
+        ::-webkit-scrollbar-track{background:#000}
+        ::-webkit-scrollbar-thumb{background:#333}
+        section[id]{scroll-margin-top:64px}
 
-        section[id] { scroll-margin-top: 72px; }
+        @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+        @keyframes aurora-shift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(32px); }
-          to   { opacity: 1; transform: translateY(0); }
+        .aurora{position:absolute;pointer-events:none;width:140%;height:600px;left:-20%;
+          background:radial-gradient(ellipse at 25% 50%,rgba(99,70,255,0.12) 0%,transparent 50%),
+                     radial-gradient(ellipse at 75% 30%,rgba(0,190,255,0.08) 0%,transparent 50%),
+                     radial-gradient(ellipse at 50% 70%,rgba(255,80,150,0.06) 0%,transparent 50%);
+          filter:blur(60px);background-size:200% 200%;animation:aurora-shift 20s ease infinite}
+
+        .marquee-track{display:flex;width:max-content;animation:marquee 45s linear infinite}
+        .marquee-track:hover{animation-play-state:paused}
+
+        .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:background .3s,border-color .3s}
+        .glass:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15)}
+
+        .pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 32px;border-radius:100px;font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0.02em;text-decoration:none;cursor:pointer;transition:all .25s;border:none}
+        .pill-white{background:#fff;color:#000}
+        .pill-white:hover{background:#e0e0e0;transform:scale(1.02)}
+        .pill-ghost{background:transparent;border:1px solid rgba(255,255,255,0.15);color:#aaa}
+        .pill-ghost:hover{border-color:#fff;color:#fff;transform:scale(1.02)}
+
+        .case-block{border-bottom:1px solid rgba(255,255,255,0.08);padding:64px 0;position:relative;transition:background .4s}
+        .case-block:hover{background:rgba(255,255,255,0.01)}
+
+        .compare-row{display:grid;grid-template-columns:1fr 1fr;gap:0}
+        .compare-col{padding:40px 36px}
+
+        .app-line{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.08);transition:padding-left .25s}
+        .app-line:hover{padding-left:12px}
+
+        .svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+        .svc-card{padding:48px 36px;border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);display:flex;flex-direction:column;position:relative;border-radius:20px;transition:border-color .3s,background .3s}
+        .svc-card:hover{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.04)}
+
+        .faq-item{border-bottom:1px solid rgba(255,255,255,0.08);padding:32px 0}
+
+        @media(max-width:900px){
+          .svc-grid{grid-template-columns:1fr!important}
+          .compare-row{grid-template-columns:1fr!important}
+          .compare-col:first-child{border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.08)!important}
+          .bento-grid{grid-template-columns:1fr 1fr!important;grid-template-rows:auto!important}
+          .bento-grid>*{grid-column:span 1!important;grid-row:span 1!important}
+          .bento-hero{grid-column:span 2!important}
         }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-16px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes marquee {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-        @keyframes breathe {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-        @keyframes grain {
-          0%, 100% { transform: translate(0, 0); }
-          10% { transform: translate(-5%, -10%); }
-          20% { transform: translate(-15%, 5%); }
-          30% { transform: translate(7%, -25%); }
-          40% { transform: translate(-5%, 25%); }
-          50% { transform: translate(-15%, 10%); }
-          60% { transform: translate(15%, 0%); }
-          70% { transform: translate(0%, 15%); }
-          80% { transform: translate(3%, 35%); }
-          90% { transform: translate(-10%, 10%); }
-        }
-
-        .anim-1 { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
-        .anim-2 { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s both; }
-        .anim-3 { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both; }
-        .anim-4 { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
-        .anim-5 { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s both; }
-
-        /* Grain overlay */
-        .grain::before {
-          content: '';
-          position: fixed;
-          inset: -50%;
-          width: 200%;
-          height: 200%;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-          pointer-events: none;
-          z-index: 9999;
-          animation: grain 8s steps(10) infinite;
-          opacity: 0.4;
-        }
-
-        /* Nav */
-        .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(6,6,8,0.8); border-bottom: 1px solid var(--border); }
-        .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 48px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
-        .nav-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; text-decoration: none; }
-        .nav-links { display: flex; align-items: center; gap: 36px; }
-        .nav-link { font-size: 13px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; letter-spacing: 0.01em; }
-        .nav-link:hover { color: var(--text); }
-        .nav-cta { font-size: 12px; font-weight: 600; color: #060608; background: var(--accent); padding: 8px 20px; text-decoration: none; letter-spacing: 0.02em; text-transform: uppercase; transition: opacity 0.2s; }
-        .nav-cta:hover { opacity: 0.85; }
-        .nav-mobile-cta { display: none; }
-
-        /* Hero */
-        .hero { max-width: 1200px; margin: 0 auto; padding: 180px 48px 100px; }
-        .hero-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 48px; display: flex; align-items: center; gap: 12px; }
-        .hero-dot { width: 6px; height: 6px; background: var(--accent); animation: breathe 2.5s ease-in-out infinite; }
-        .hero h1 { font-family: var(--font-display); font-size: clamp(56px, 8vw, 112px); font-weight: 800; line-height: 0.92; letter-spacing: -0.04em; color: var(--text); margin-bottom: 40px; max-width: 900px; }
-        .hero h1 em { font-style: italic; color: var(--accent); }
-        .hero-sub { font-size: 18px; color: var(--text-dim); line-height: 1.7; max-width: 480px; margin-bottom: 56px; }
-        .hero-ctas { display: flex; gap: 16px; align-items: center; }
-        .btn-primary { background: var(--text); color: var(--bg); font-family: var(--font-body); font-size: 13px; font-weight: 600; padding: 14px 32px; border: none; text-decoration: none; letter-spacing: 0.01em; cursor: pointer; transition: opacity 0.2s; display: inline-block; }
-        .btn-primary:hover { opacity: 0.85; }
-        .btn-ghost { color: var(--text-dim); font-size: 13px; text-decoration: none; padding: 14px 0; border-bottom: 1px solid var(--border-strong); transition: color 0.2s, border-color 0.2s; display: inline-block; }
-        .btn-ghost:hover { color: var(--text); border-color: var(--text); }
-
-        /* Stats bar */
-        .stats-bar { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
-        .stats-inner { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-        .stat { padding: 32px 0; border-right: 1px solid var(--border); text-align: center; }
-        .stat:last-child { border-right: none; }
-        .stat-num { font-family: var(--font-display); font-size: 42px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); line-height: 1; }
-        .stat-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-top: 8px; }
-
-        /* Showcase grid */
-        .showcase { max-width: 1200px; margin: 0 auto; padding: 80px 48px; }
-        .showcase-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 32px; text-align: center; }
-        .showcase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; overflow: hidden; }
-        .showcase-cell { position: relative; aspect-ratio: 3/4; overflow: hidden; }
-        .showcase-cell img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%) brightness(0.85); transition: filter 0.4s, transform 0.4s; }
-        .showcase-cell:hover img { filter: grayscale(0%) brightness(1); transform: scale(1.04); }
-        .showcase-cell .showcase-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(6,6,8,0.85) 0%, transparent 50%); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; opacity: 0; transition: opacity 0.3s; }
-        .showcase-cell:hover .showcase-overlay { opacity: 1; }
-        .showcase-overlay-tag { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
-        .showcase-overlay-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
-
-        @media (max-width: 768px) {
-          .showcase { padding: 56px 24px; }
-          .showcase-cell .showcase-overlay { opacity: 1; }
-        }
-
-        /* Tech marquee */
-        .marquee-wrap { border-bottom: 1px solid var(--border); padding: 20px 0; overflow: hidden; }
-        .marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
-        .marquee-track:hover { animation-play-state: paused; }
-        .marquee-item { padding: 0 28px; font-size: 11px; color: var(--text-muted); letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; display: flex; align-items: center; gap: 28px; }
-        .marquee-dot { width: 3px; height: 3px; background: var(--text-muted); opacity: 0.4; }
-
-        /* Section shared */
-        .section { max-width: 1200px; margin: 0 auto; padding: 120px 48px; }
-        .section-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
-        .section-title { font-family: var(--font-display); font-size: clamp(36px, 5vw, 52px); font-weight: 800; letter-spacing: -0.035em; color: var(--text); margin-bottom: 24px; }
-        .section-desc { font-size: 15px; color: var(--text-dim); line-height: 1.7; max-width: 440px; margin-bottom: 64px; }
-        .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
-
-        /* Process */
-        .process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); }
-        .process-step { background: var(--bg); padding: 40px 32px; }
-        .process-num { font-family: var(--font-display); font-size: 48px; font-weight: 800; color: var(--accent-dim); letter-spacing: -0.04em; line-height: 1; margin-bottom: 24px; }
-        .process-name { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin-bottom: 12px; }
-        .process-desc { font-size: 13px; color: var(--text-dim); line-height: 1.75; }
-
-        /* Projects */
-        .project { border-bottom: 1px solid var(--border); padding: 64px 0; display: grid; grid-template-columns: 80px 1fr; gap: 48px; align-items: start; transition: background 0.3s; }
-        .project:first-child { border-top: 1px solid var(--border); }
-        .project:hover { background: var(--surface); }
-        .project-num { font-family: var(--font-display); font-size: 64px; font-weight: 800; color: rgba(201,169,110,0.12); letter-spacing: -0.04em; line-height: 1; }
-        .project-category { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
-        .project-name { font-family: var(--font-display); font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); margin-bottom: 12px; }
-        .project-headline { font-size: 16px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; max-width: 640px; }
-        .project-detail { font-size: 14px; color: var(--text-muted); line-height: 1.8; max-width: 640px; margin-bottom: 24px; }
-        .tech-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
-        .tech-tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); border: 1px solid var(--border); padding: 4px 10px; }
-        .project-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; letter-spacing: 0.04em; text-transform: uppercase; transition: opacity 0.2s; }
-        .project-link:hover { opacity: 0.7; }
-        .project-outcome { display: inline-block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); border: 1px solid var(--border-strong); padding: 4px 12px; margin-bottom: 16px; }
-
-        /* More apps */
-        .apps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-top: 48px; }
-        .app-cell { background: var(--bg); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
-        .app-cell:hover { background: var(--surface); }
-        .app-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
-        .app-client { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
-        .app-link { font-size: 10px; color: var(--accent); text-decoration: none; opacity: 0; transition: opacity 0.2s; }
-        .app-cell:hover .app-link { opacity: 1; }
-
-        /* Testimonials */
-        .testimonial { border-bottom: 1px solid var(--border); padding: 80px 0; }
-        .testimonial:first-child { border-top: 1px solid var(--border); }
-        .testimonial-quote { font-family: var(--font-display); font-size: clamp(22px, 3vw, 32px); font-weight: 700; color: var(--text); line-height: 1.5; letter-spacing: -0.02em; margin-bottom: 36px; max-width: 800px; }
-        .testimonial-author { font-size: 14px; font-weight: 600; color: var(--text); }
-        .testimonial-role { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
-        .testimonial-stars { color: var(--accent); font-size: 14px; letter-spacing: 2px; margin-bottom: 28px; }
-
-        /* Services */
-        .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
-        .service { background: var(--bg); padding: 48px 36px; display: flex; flex-direction: column; position: relative; transition: background 0.3s; }
-        .service:hover { background: var(--surface); }
-        .service-popular { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
-        .service-badge { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
-        .service-duration { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; }
-        .service-name { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); margin-bottom: 8px; }
-        .service-price { font-family: var(--font-display); font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); margin-bottom: 24px; }
-        .service-desc { font-size: 13px; color: var(--text-dim); line-height: 1.75; margin-bottom: 32px; }
-        .service-items { list-style: none; display: flex; flex-direction: column; gap: 14px; flex: 1; }
-        .service-item { font-size: 13px; color: var(--text-dim); display: flex; gap: 12px; align-items: flex-start; }
-        .service-check { color: var(--accent); font-size: 10px; margin-top: 3px; flex-shrink: 0; }
-        .service-cta { margin-top: 36px; display: block; text-align: center; padding: 14px 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; transition: opacity 0.2s; cursor: pointer; }
-        .service-cta-primary { background: var(--accent); color: #060608; }
-        .service-cta-secondary { background: transparent; border: 1px solid var(--border-strong); color: var(--text-dim); }
-        .service-cta:hover { opacity: 0.8; }
-
-        /* Contact */
-        .contact { max-width: 1200px; margin: 0 auto; padding: 140px 48px; text-align: center; }
-        .contact h2 { font-family: var(--font-display); font-size: clamp(48px, 7vw, 84px); font-weight: 800; letter-spacing: -0.04em; color: var(--text); line-height: 0.95; margin-bottom: 28px; }
-        .contact h2 em { font-style: italic; color: var(--accent); }
-        .contact-sub { font-size: 16px; color: var(--text-dim); max-width: 400px; margin: 0 auto 52px; line-height: 1.7; }
-        .contact-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-
-        /* Footer */
-        .footer { border-top: 1px solid var(--border); padding: 28px 48px; }
-        .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-        .footer-left { font-size: 12px; color: var(--text-muted); }
-        .footer-links { display: flex; gap: 28px; }
-        .footer-link { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
-        .footer-link:hover { color: var(--text); }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) {
-          .services-grid { grid-template-columns: 1fr; }
-          .process-grid { grid-template-columns: 1fr 1fr; }
-          .apps-grid { grid-template-columns: 1fr 1fr; }
-        }
-
-        @media (max-width: 768px) {
-          .nav-inner { padding: 0 24px; }
-          .nav-links { display: none; }
-          .nav-mobile-cta { display: block; }
-
-          .hero { padding: 120px 24px 72px; }
-          .hero-ctas { flex-direction: column; align-items: stretch; }
-          .hero-ctas .btn-ghost { text-align: center; }
-          .hero-whatsapp { display: none; }
-
-          .stats-inner { grid-template-columns: 1fr 1fr; }
-          .stat { border-bottom: 1px solid var(--border); }
-
-          .section { padding: 80px 24px; }
-
-          .process-grid { grid-template-columns: 1fr; }
-
-          .project { grid-template-columns: 1fr; gap: 0; padding: 48px 0; }
-          .project-num { font-size: 40px; margin-bottom: 16px; }
-
-          .apps-grid { grid-template-columns: 1fr 1fr; }
-          .app-link { opacity: 1; }
-
-          .testimonial { padding: 56px 0; }
-          .testimonial-quote { font-size: 20px; }
-
-          .services-grid { grid-template-columns: 1fr; }
-
-          .contact { padding: 80px 24px; }
-          .contact-btns { flex-direction: column; align-items: stretch; }
-
-          .footer { padding: 24px; }
-          .stats-bar { padding: 0 24px; }
+        @media(max-width:768px){
+          .nav-links{display:none!important}
+          .nav-hire{display:flex!important}
+          .nav-inner{padding:0 20px!important}
+          .hero-pad{padding:120px 20px 60px!important;min-height:auto!important}
+          .hero-ctas{flex-direction:column!important}
+          .hero-ctas a{width:100%!important;text-align:center!important;justify-content:center!important}
+          .hero-sub{font-size:15px!important;max-width:100%!important}
+          .bento-grid{grid-template-columns:1fr!important}
+          .bento-hero{grid-column:span 1!important;padding:32px 24px!important}
+          .bento-hero-num{font-size:48px!important}
+          .bento-step{padding:24px 20px!important}
+          .mini-stats{grid-template-columns:1fr!important}
+          .mini-stat{padding:20px!important}
+          .sec-pad{padding:64px 20px!important}
+          .sec-header{flex-direction:column!important;gap:12px!important}
+          .sec-header h2{font-size:32px!important}
+          .sec-header p{text-align:left!important;max-width:100%!important}
+          .compare-row{grid-template-columns:1fr!important}
+          .compare-col{padding:28px 0!important}
+          .compare-col:first-child{border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.08)!important}
+          .case-block{padding:40px 0!important}
+          .case-inner{grid-template-columns:1fr!important}
+          .case-left,.case-right{padding:0!important}
+          .case-mockup{display:none!important}
+          .svc-grid{grid-template-columns:1fr!important;gap:12px!important}
+          .svc-card{padding:32px 24px!important}
+          .quote-grid{grid-template-columns:1fr!important}
+          .quote-card{padding:32px 24px!important}
+          .contact-pad{padding:64px 20px!important}
+          .contact-head{font-size:clamp(32px,8vw,48px)!important}
+          .contact-btns{flex-direction:column!important}
+          .contact-btns a,.contact-btns button{width:100%!important;text-align:center!important;justify-content:center!important}
+          .footer-inner{flex-direction:column!important;gap:12px!important;text-align:center!important}
+          .app-line{flex-wrap:wrap!important;gap:4px!important}
+          .faq-item{padding:24px 0!important}
         }
       `}</style>
 
-      <div className="grain">
-        {/* ── NAV ── */}
-        <nav className="nav">
-          <div className="nav-inner">
-            <a href="#" className="nav-name">Aditya R.</a>
-            <div className="nav-links">
-              <a href="#work" className="nav-link">Work</a>
-              <a href="#services" className="nav-link">Services</a>
-              <a href="https://linkedin.com/in/adityar-analytics" target="_blank" rel="noopener noreferrer" className="nav-link">LinkedIn</a>
-              <a href="https://github.com/AlnicoTech2" target="_blank" rel="noopener noreferrer" className="nav-link">GitHub</a>
-              <a href="#contact" className="nav-cta">Hire me</a>
+      <main style={{ position: "relative" }}>
+
+        {/* ═══ NAV ═══ */}
+        <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}
+          style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
+          <div className="nav-inner" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <a href="#" style={{ fontFamily: D, fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.04em", textDecoration: "none" }}>
+              ADITYA R<span style={{ color: "#555" }}>.</span>
+            </a>
+            <div className="nav-links" style={{ display: "flex", alignItems: "center", gap: 28 }}>
+              {["Work", "Services", "Contact"].map(l => (
+                <a key={l} href={`#${l.toLowerCase()}`} style={{ fontFamily: B, fontSize: 13, color: "#666", textDecoration: "none", transition: "color .2s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#fff")} onMouseLeave={e => (e.currentTarget.style.color = "#666")}>{l}</a>
+              ))}
+              <div style={{ width: 1, height: 12, background: "rgba(255,255,255,0.1)" }} />
+              {[{ l: "Li", h: "https://linkedin.com/in/adityar-analytics" }, { l: "Gh", h: "https://github.com/AlnicoTech2" }].map(s => (
+                <a key={s.l} href={s.h} target="_blank" rel="noopener noreferrer" style={{ fontFamily: B, fontSize: 12, color: "#444", textDecoration: "none", transition: "color .2s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#aaa")} onMouseLeave={e => (e.currentTarget.style.color = "#444")}>{s.l}</a>
+              ))}
+              <a href="#contact" className="pill pill-white" style={{ padding: "8px 20px", fontSize: 12 }}>Start a project</a>
             </div>
-            <a href="#contact" className="nav-cta nav-mobile-cta">Hire me</a>
+            <a href="#contact" className="nav-hire pill pill-white" style={{ padding: "8px 20px", fontSize: 12, display: "none" }}>Start a project</a>
           </div>
-        </nav>
+        </motion.nav>
 
-        {/* ── HERO ── */}
-        <section className="hero">
-          <div className="anim-1 hero-label">
-            <span className="hero-dot" />
-            Available for projects — Bangalore, India
-          </div>
+        {/* ═══ 1. ANTI-RESUME HERO ═══ */}
+        <section className="hero-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "200px 40px 140px", position: "relative", overflow: "hidden", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <motion.div className="aurora" style={{ top: -200, y: auroraY }} />
 
-          <h1 className="anim-2">
-            I build apps.<br />
-            <em>You ship faster.</em>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 56, alignSelf: "flex-start" }}>
+            <motion.span animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              style={{ width: 6, height: 6, borderRadius: "50%", background: "#00ff88", boxShadow: "0 0 12px rgba(0,255,136,0.5)", display: "inline-block" }} />
+            <span style={{ fontFamily: B, fontSize: 12, color: "#aaa" }}>Accepting new projects</span>
+          </motion.div>
+
+          <h1 style={{ fontFamily: D, fontWeight: 800, fontSize: "clamp(44px, 7.5vw, 100px)", letterSpacing: "-0.05em", lineHeight: 0.95, color: "#fff", marginBottom: 16, maxWidth: 900 }}>
+            <WordReveal text="You don't need a dev team." />
+          </h1>
+          <h1 style={{ fontFamily: D, fontWeight: 800, fontSize: "clamp(44px, 7.5vw, 100px)", letterSpacing: "-0.05em", lineHeight: 0.95, color: "#555", marginBottom: 48 }}>
+            <WordReveal text="You need a technical partner." delay={0.3} />
           </h1>
 
-          <p className="anim-3 hero-sub">
-            Full-stack mobile and web development, end-to-end.
-            AI-accelerated delivery. No hand-holding. Working software, shipped in weeks.
-          </p>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.6 }}
+            className="hero-sub" style={{ fontFamily: B, fontSize: 17, color: "#666", lineHeight: 1.85, maxWidth: 540, marginBottom: 48 }}>
+            I architect, build, and scale production-grade mobile and web apps for funded founders. From raw idea to revenue in 4 weeks. No agencies. No hand-holding. Just shipped software.
+          </motion.p>
 
-          <div className="anim-4 hero-ctas">
-            <a href="#work" className="btn-primary">View my work</a>
-            <a href="#contact" className="btn-ghost">Start a project</a>
-            <a href="https://wa.me/919945622485" target="_blank" rel="noopener noreferrer" className="btn-ghost hero-whatsapp">WhatsApp</a>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1, duration: 0.6 }}
+            className="hero-ctas" style={{ display: "flex", gap: 14 }}>
+            <MagneticButton href="#work" className="pill pill-white" style={{ padding: "16px 36px" }}>See the proof</MagneticButton>
+            <MagneticButton href="#contact" className="pill pill-ghost" style={{ padding: "16px 36px" }}>Start a project</MagneticButton>
+          </motion.div>
+        </section>
+
+        {/* ═══ 2. PROOF METRICS ═══ */}
+        <div ref={statsRef} style={{ borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="bento-grid" style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridTemplateRows: "180px 180px", gap: 16, padding: "16px 40px" }}>
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={statsVis ? { opacity: 1, scale: 1 } : {}} transition={{ duration: 0.6 }}
+              style={{ gridColumn: "span 2", gridRow: "span 2" }} className="bento-hero">
+              <BentoCard style={{ padding: 48, height: "100%" }}>
+                <div className="aurora" style={{ top: -100, opacity: 0.6 }} />
+                <p style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#555", position: "relative" }}>Proof of execution</p>
+                <div style={{ position: "relative" }}>
+                  <p className="bento-hero-num" style={{ fontFamily: D, fontSize: 72, fontWeight: 800, letterSpacing: "-0.05em", color: "#fff", lineHeight: 1 }}>{c1.v}+</p>
+                  <p style={{ fontFamily: B, fontSize: 15, color: "#666", marginTop: 8 }}>Production apps shipped to market</p>
+                </div>
+              </BentoCard>
+            </motion.div>
+            {[
+              { n: "4", u: "weeks", l: "Idea to live product" },
+              { n: "0", u: "", l: "Projects abandoned" },
+              { n: "100", u: "%", l: "End-to-end ownership" },
+              { n: "24/7", u: "", l: "Async communication" },
+            ].map((s, i) => (
+              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={statsVis ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.1 + i * 0.08, duration: 0.5 }}
+                className="bento-step">
+                <BentoCard style={{ padding: "28px 24px", height: "100%" }}>
+                  <p style={{ fontFamily: D, fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1 }}>{s.n}<span style={{ color: "#555" }}>{s.u}</span></p>
+                  <p style={{ fontFamily: B, fontSize: 12, color: "#555", lineHeight: 1.5 }}>{s.l}</p>
+                </BentoCard>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* ═══ 3. MANIFESTO — ME VS AGENCIES ═══ */}
+        <section className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+          <SH label="Why me" title={"The agency model is broken."} sub="You're paying for project managers, bloated teams, and 6-month timelines. I'm the alternative." />
+          <div className="compare-row" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <motion.div className="compare-col" style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}
+              variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
+              <motion.p variants={staggerItem} style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#444", marginBottom: 28 }}>Traditional agency</motion.p>
+              {["6 month timeline", "$40\u2013$80k minimum", "You talk to a project manager", "Bloated team, diluted ownership", "Endless scope creep and change orders"].map(item => (
+                <motion.div key={item} variants={staggerItem} style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+                  <span style={{ color: "#333", fontSize: 14, flexShrink: 0, marginTop: 1 }}>&times;</span>
+                  <span style={{ fontFamily: B, fontSize: 14, color: "#555", lineHeight: 1.6 }}>{item}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+            <motion.div className="compare-col"
+              variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
+              <motion.p variants={staggerItem} style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#aaa", marginBottom: 28 }}>Working with me</motion.p>
+              {["4 weeks to live product", "Clear, predictable pricing", "You speak directly to the engineer", "One person, total ownership", "Scope locked before code starts"].map(item => (
+                <motion.div key={item} variants={staggerItem} style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+                  <span style={{ color: "#fff", fontSize: 12, flexShrink: 0, marginTop: 2 }}>&#10003;</span>
+                  <span style={{ fontFamily: B, fontSize: 14, color: "#aaa", lineHeight: 1.6 }}>{item}</span>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
         </section>
 
-        {/* ── STATS ── */}
-        <div className="anim-5 stats-bar">
-          <div className="stats-inner">
-            {[
-              { num: "19+", label: "Apps shipped" },
-              { num: "2", label: "Clients served" },
-              { num: "100%", label: "End-to-end" },
-              { num: "0", label: "Compromises" },
-            ].map(s => (
-              <div key={s.label} className="stat">
-                <div className="stat-num">{s.num}</div>
-                <div className="stat-label">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── SHOWCASE GRID ── */}
-        <div className="showcase">
-          <div className="showcase-label">What I build looks like this</div>
-          <div className="showcase-grid">
-            {[
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/kedarnath_devotee.jpg", tag: "Temple & God", name: "Kedarnath" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/morning_prayer.jpg", tag: "Good Morning", name: "Morning Prayer" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/bike_lifestyle.jpg", tag: "Daily Vibe", name: "Bike Lifestyle" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/shiva_meditation.jpg", tag: "Temple & God", name: "Shiva Meditation" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/terrace_garden.jpg", tag: "Good Morning", name: "Terrace Garden" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/afternoon_relax.jpg", tag: "Good Afternoon", name: "Afternoon Relax" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/krishna_devotional.jpg", tag: "Temple & God", name: "Krishna Devotional" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/train_window.jpg", tag: "Daily Vibe", name: "Train Window" },
-              { src: "https://d3k1yij1rdqtzo.cloudfront.net/templates/metro_ride.jpg", tag: "Daily Vibe", name: "Metro Ride" },
-            ].map((item, i) => (
-              <div key={i} className="showcase-cell">
-                <img src={item.src} alt={item.name} loading={i < 3 ? "eager" : "lazy"} />
-                <div className="showcase-overlay">
-                  <span className="showcase-overlay-tag">{item.tag}</span>
-                  <span className="showcase-overlay-name">{item.name}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── TECH MARQUEE ── */}
-        <div className="marquee-wrap">
+        {/* ═══ MARQUEE ═══ */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "14px 0", overflow: "hidden" }}>
           <div className="marquee-track">
-            {[...TECH, ...TECH].map((t, i) => (
-              <span key={i} className="marquee-item">
-                {t}
-                <span className="marquee-dot" />
+            {[...MARQUEE, ...MARQUEE].map((t, i) => (
+              <span key={i} style={{ padding: "0 36px", fontSize: 11, color: "#333", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: B, display: "flex", alignItems: "center", gap: 36, whiteSpace: "nowrap" }}>
+                {t}<span style={{ width: 3, height: 3, borderRadius: "50%", background: "#333", display: "inline-block" }} />
               </span>
             ))}
           </div>
         </div>
 
-        {/* ── PROCESS ── */}
-        <div className="section">
-          <div className="section-label">How it works</div>
-          <div className="section-title">From idea to live.</div>
-          <div className="section-desc">
-            A structured process. You stay in control. Nothing slows down.
-          </div>
-          <div className="process-grid">
-            {[
-              { n: "01", name: "Discovery", desc: "We align on scope, stack, timeline, and success metrics. No ambiguity before a line of code is written." },
-              { n: "02", name: "Architecture", desc: "I design the full system — database schema, API contracts, auth flow, infra. You review before we build." },
-              { n: "03", name: "Build", desc: "AI-accelerated development with daily async updates. You see real progress, not status reports." },
-              { n: "04", name: "Ship", desc: "Deploy, app store submission, domain setup, monitoring. Live product with zero handover friction." },
-            ].map(p => (
-              <div key={p.n} className="process-step">
-                <div className="process-num">{p.n}</div>
-                <div className="process-name">{p.name}</div>
-                <div className="process-desc">{p.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* ═══ 4. BUSINESS CASES ═══ */}
+        <section id="work" className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+          <SH label="Business cases" title={"The proof is in the shipped product."} sub="Not screenshots. Not mockups. Businesses generating real revenue." />
 
-        <hr className="divider" />
-
-        {/* ── WORK ── */}
-        <section id="work" className="section">
-          <div className="section-label">Selected work</div>
-          <div className="section-title">Things I&apos;ve built.</div>
-          <div className="section-desc">
-            Every project is production-grade. No MVPs abandoned at 80%.
-          </div>
-
-          {PROJECTS.map(p => (
-            <div key={p.name} className="project">
-              <div className="project-num">{p.number}</div>
-              <div>
-                <div className="project-category">{p.category}</div>
-                <div className="project-outcome">{p.outcome}</div>
-                <h3 className="project-name">{p.name}</h3>
-                <p className="project-headline">{p.headline}</p>
-                <p className="project-detail">{p.description}</p>
-                <div className="tech-row">
-                  {p.tech.map(t => <span key={t} className="tech-tag">{t}</span>)}
+          {CASES.map((cs, ci) => (
+            <motion.div key={cs.name} className="case-block" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ delay: ci * 0.08, duration: 0.6 }}>
+              <div className="case-inner" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 48 }}>
+                <div className="case-left">
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <h3 style={{ fontFamily: B, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", color: "#fff" }}>{cs.name}</h3>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {cs.tech.map(t => (
+                        <span key={t} style={{ fontSize: 10, color: "#555", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "3px 10px", fontFamily: B }}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#444", marginBottom: 8 }}>The problem</p>
+                    <p style={{ fontFamily: B, fontSize: 15, color: "#aaa", lineHeight: 1.75 }}>{cs.problem}</p>
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#444", marginBottom: 8 }}>The architecture</p>
+                    <p style={{ fontFamily: B, fontSize: 15, color: "#888", lineHeight: 1.75 }}>{cs.architecture}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#444", marginBottom: 8 }}>The outcome</p>
+                    <p style={{ fontFamily: B, fontSize: 15, color: "#fff", lineHeight: 1.75, fontWeight: 500 }}>{cs.outcome}</p>
+                  </div>
+                  {cs.link && <a href={cs.link} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, fontFamily: B, fontSize: 12, color: "#aaa", textDecoration: "none" }}>Visit &rarr;</a>}
                 </div>
-                {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="project-link">View live &#8599;</a>}
+                {/* Device mockup */}
+                <div className="case-mockup" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{
+                    width: "100%", maxWidth: 220, aspectRatio: "9/19.5",
+                    borderRadius: 28, border: "1px solid rgba(255,255,255,0.1)",
+                    background: `linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))`,
+                    position: "relative", overflow: "hidden",
+                    boxShadow: "0 0 60px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06)",
+                  }}>
+                    {/* Notch */}
+                    <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 80, height: 22, borderRadius: 100, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.06)" }} />
+                    {/* Screen content placeholder */}
+                    <div style={{ position: "absolute", inset: 4, borderRadius: 24, overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 8, paddingTop: 40 }}>
+                      <div style={{ width: "60%", height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)" }} />
+                      <div style={{ width: "80%", height: 6, borderRadius: 3, background: "rgba(255,255,255,0.04)" }} />
+                      <div style={{ width: "40%", height: 6, borderRadius: 3, background: "rgba(255,255,255,0.03)" }} />
+                      <div style={{ width: "70%", height: 40, borderRadius: 8, background: "rgba(255,255,255,0.03)", marginTop: 12 }} />
+                      <div style={{ width: "70%", height: 40, borderRadius: 8, background: "rgba(255,255,255,0.02)" }} />
+                    </div>
+                    {/* Ambient glow */}
+                    <div style={{
+                      position: "absolute", bottom: -40, left: "50%", transform: "translateX(-50%)",
+                      width: 160, height: 120, borderRadius: "50%",
+                      background: ci === 0 ? "rgba(99,70,255,0.08)" : ci === 1 ? "rgba(0,190,255,0.08)" : "rgba(0,255,136,0.06)",
+                      filter: "blur(40px)",
+                    }} />
+                    {/* App name on screen */}
+                    <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, textAlign: "center" }}>
+                      <p style={{ fontFamily: D, fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.15)", letterSpacing: "-0.02em" }}>{cs.name}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </motion.div>
           ))}
 
-          {/* More apps */}
+          {/* Long tail */}
           <div style={{ marginTop: 80 }}>
-            <div className="section-label">More apps shipped</div>
-            <p style={{ fontSize: 14, color: "var(--text-dim)", marginBottom: 8 }}>
-              16 additional production apps across two clients.
-            </p>
-            <div className="apps-grid">
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <span style={{ fontFamily: B, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#444" }}>+ {MORE_APPS.length} more shipped products</span>
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
               {MORE_APPS.map(app => (
-                <div key={app.name} className="app-cell">
-                  <div>
-                    <div className="app-name">{app.name}</div>
-                    <div className="app-client">{app.client}</div>
+                <div key={app.name} className="app-line">
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <span style={{ fontFamily: D, fontSize: 14, fontWeight: 700, color: "#fff" }}>{app.name}</span>
+                    <span style={{ fontFamily: B, fontSize: 11, color: "#444" }}>{app.cat}</span>
                   </div>
-                  {app.link ? (
-                    <a href={app.link} target="_blank" rel="noopener noreferrer" className="app-link">Play Store &#8599;</a>
-                  ) : (
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Soon</span>
-                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    {app.link ? <a href={app.link} target="_blank" rel="noopener noreferrer" style={{ fontFamily: B, fontSize: 11, color: "#aaa", textDecoration: "none" }}>Play Store &rarr;</a> : <span style={{ fontFamily: B, fontSize: 11, color: "#333" }}>Soon</span>}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <hr className="divider" />
-
-        {/* ── TESTIMONIALS ── */}
-        <section className="section">
-          <div className="section-label">Client feedback</div>
-          <div className="section-title">What founders say.</div>
-
-          {[
-            {
-              quote: "Aditya has built and shipped 10+ production apps for us — dating, AI, astrology, poster tools — all with subscription paywalls, Play Store live. He owns the full stack and just delivers. No chasing, no excuses.",
-              name: "Rajan Bhagat",
-              role: "Founder, Alnico Tech",
-            },
-            {
-              quote: "We needed subscription-based Flutter apps on the Play Store, done properly. Aditya handled everything — architecture, payments, store submission. Clean code, fast delivery. We keep coming back.",
-              name: "Swatantra",
-              role: "Founder, Gumbo Tech",
-            },
-          ].map(t => (
-            <div key={t.name} className="testimonial">
-              <div className="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-              <blockquote className="testimonial-quote">&ldquo;{t.quote}&rdquo;</blockquote>
-              <div className="testimonial-author">{t.name}</div>
-              <div className="testimonial-role">{t.role}</div>
-            </div>
-          ))}
+        {/* ═══ 5. CAPABILITIES (NOT BUZZWORDS) ═══ */}
+        <section style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+            <SH label="Capabilities" title={"What I bring to your product."} />
+            <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+              style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }} className="bento-grid">
+              {[
+                { title: "Speed & Cross-Platform", desc: "Ship on iOS, Android, and web from a single codebase.", items: ["Flutter", "React Native", "Next.js 16", "TypeScript"] },
+                { title: "Scale & Infrastructure", desc: "Databases, APIs, and cloud that handle growth.", items: ["PostgreSQL", "Supabase", "AWS", "DynamoDB", "CloudFront"] },
+                { title: "Revenue & Growth", desc: "Payments, subscriptions, and monetization loops.", items: ["Razorpay", "Stripe", "RevenueCat"] },
+                { title: "The AI Edge", desc: "Production AI pipelines, not toy demos.", items: ["Fal.ai", "Vertex AI", "Gemini 3", "LangChain"] },
+              ].map((cat) => (
+                <motion.div key={cat.title} variants={staggerItem}>
+                <BentoCard style={{ padding: "32px 24px" }}>
+                  <p style={{ fontFamily: B, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#aaa", marginBottom: 8 }}>{cat.title}</p>
+                  <p style={{ fontFamily: B, fontSize: 13, color: "#555", lineHeight: 1.6, marginBottom: 16 }}>{cat.desc}</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {cat.items.map(item => <span key={item} style={{ fontFamily: B, fontSize: 14, color: "#666" }}>{item}</span>)}
+                  </div>
+                </BentoCard>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </section>
 
-        <hr className="divider" />
-
-        {/* ── SERVICES ── */}
-        <section id="services" className="section" style={{ paddingBottom: 0 }}>
-          <div className="section-label">Services</div>
-          <div className="section-title">How we work together.</div>
-          <div className="section-desc">
-            For founders who need someone to own the whole build — not just a single layer.
+        {/* ═══ 6. TESTIMONIALS ═══ */}
+        <section style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+            <SH label="Clients" title={"Founders who shipped with me."} />
+            <div className="quote-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {[
+                { q: "Aditya has built and shipped 10+ production apps for us \u2014 dating, AI, astrology, poster tools \u2014 all with subscription paywalls, Play Store live. He owns the full stack and just delivers. No chasing, no excuses.", n: "Rajan Bhagat", t: "Founder, Alnico Tech" },
+                { q: "We needed subscription-based Flutter apps on the Play Store, done properly. Aditya handled everything \u2014 architecture, payments, store submission. Clean code, fast delivery. We keep coming back.", n: "Swatantra", t: "Founder, Gumbo Tech" },
+              ].map((t, i) => (
+                <motion.div key={t.n} className="glass quote-card" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.5 }}
+                  style={{ borderRadius: 20, padding: "48px 40px" }}>
+                  <p style={{ fontFamily: B, fontSize: 16, color: "#ddd", lineHeight: 1.75, marginBottom: 32 }}>&ldquo;{t.q}&rdquo;</p>
+                  <p style={{ fontFamily: B, fontSize: 14, fontWeight: 600, color: "#fff" }}>{t.n}</p>
+                  <p style={{ fontFamily: B, fontSize: 12, color: "#555", marginTop: 2 }}>{t.t}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="services-grid">
+        {/* ═══ 7. SERVICES (THE INVESTMENT) ═══ */}
+        <section id="services" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+            <SH label="The investment" title={"Clear pricing. No surprises."} sub="For less than the cost of one US-based engineer for one month, you get a live, revenue-generating product." />
+            <div className="svc-grid">
+              {[
+                { name: "Product Launch", sub: "The entire product \u2014 shipped.", price: "$10k \u2013 $25k+", dur: "Zero to one", desc: "From raw idea to live product in weeks. I own the architecture, frontend, backend, AI integration, and deployment. You get a revenue-ready business.", items: ["Full-stack mobile & web build", "Scalable database architecture", "Payment & subscription loops", "App Store & Play Store deployment"], hl: true },
+                { name: "Fractional Lead", sub: "Your technical partner on call.", price: "$4k \u2013 $8k/mo", dur: "Ongoing", desc: "Dedicated bandwidth every month. I scale your product, ship new features, and eliminate technical debt so you can focus on growth.", items: ["Dedicated engineering hours", "Priority feature shipping", "Architecture & scaling calls", "Async communication & strategy"], hl: false },
+                { name: "Deep Work Sprint", sub: "Complex problems, solved fast.", price: "$3k \u2013 $7k", dur: "High velocity", desc: "1 to 2 weeks of intense focus to integrate a major feature, rescue a struggling codebase, or build an AI pipeline. No loose ends.", items: ["AI model integration (Fal.ai, Vertex)", "Complex payment routing", "Performance optimization", "Real-time infrastructure"], hl: false },
+              ].map((s, i) => (
+                <motion.div key={s.name} className="svc-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.5 }}>
+                  {s.hl && <div style={{ position: "absolute", top: 0, left: 24, right: 24, height: 1, background: "linear-gradient(90deg, transparent, rgba(99,70,255,0.5), rgba(0,190,255,0.3), transparent)" }} />}
+                  {s.hl && <span style={{ position: "absolute", top: 16, right: 20, fontFamily: B, fontSize: 10, fontWeight: 600, color: "#aaa" }}>Popular</span>}
+                  <span style={{ fontFamily: B, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#444", marginBottom: 20, display: "block" }}>{s.dur}</span>
+                  <h3 style={{ fontFamily: D, fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 2 }}>{s.name}</h3>
+                  <p style={{ fontFamily: B, fontSize: 13, color: "#888", marginBottom: 16 }}>{s.sub}</p>
+                  <p style={{ fontFamily: D, fontSize: 30, fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", marginBottom: 16 }}>{s.price}</p>
+                  <p style={{ fontFamily: B, fontSize: 13, color: "#555", lineHeight: 1.7, marginBottom: 28 }}>{s.desc}</p>
+                  <ul style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+                    {s.items.map(item => (
+                      <li key={item} style={{ display: "flex", gap: 10, listStyle: "none", fontSize: 13, color: "#666", fontFamily: B }}>
+                        <span style={{ color: "#444", marginTop: 1 }}>+</span>{item}
+                      </li>
+                    ))}
+                  </ul>
+                  <a href="#contact" className={`pill ${s.hl ? "pill-white" : "pill-ghost"}`} style={{ marginTop: 32, width: "100%" }}>Start a project &rarr;</a>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ 8. EXCLUSIVITY FAQ ═══ */}
+        <section style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "120px 40px" }}>
+            <SH label="FAQ" title={"Before you reach out."} />
             {[
-              {
-                name: "MVP Build",
-                price: "₹1.5L – ₹4L",
-                duration: "2–4 weeks",
-                desc: "Zero to live. I own every layer — frontend, backend, payments, deployment. You get a real product, not a prototype.",
-                items: ["Mobile app (Flutter / React Native)", "Web app or landing site", "Backend + database architecture", "Payment & subscription flows", "Play Store / App Store submission"],
-                popular: true,
-              },
-              {
-                name: "Monthly Retainer",
-                price: "₹25K – ₹60K/mo",
-                duration: "Ongoing",
-                desc: "Your technical co-founder. I ship features, kill bugs, and keep your product moving — every month.",
-                items: ["Dedicated development time", "New features on demand", "Bug fixes & performance", "Architecture decisions", "Priority async communication"],
-                popular: false,
-              },
-              {
-                name: "Feature Sprint",
-                price: "₹30K – ₹80K",
-                duration: "3–7 days",
-                desc: "One focused feature, done properly. AI integration, payment flows, auth — integrated cleanly into your codebase.",
-                items: ["AI & ML feature integration", "Payment / subscription flows", "Push notification systems", "Maps & real-time features", "Auth & user management"],
-                popular: false,
-              },
-            ].map(s => (
-              <div key={s.name} className="service">
-                {s.popular && <div className="service-popular" />}
-                {s.popular && <div className="service-badge">Most popular</div>}
-                <div className="service-duration">{s.duration}</div>
-                <div className="service-name">{s.name}</div>
-                <div className="service-price">{s.price}</div>
-                <p className="service-desc">{s.desc}</p>
-                <ul className="service-items">
-                  {s.items.map(item => (
-                    <li key={item} className="service-item">
-                      <span className="service-check">&#10003;</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <a href="#contact" className={`service-cta ${s.popular ? "service-cta-primary" : "service-cta-secondary"}`}>
-                  Start a project &#8594;
-                </a>
-              </div>
+              { q: "Do you work for equity?", a: "No. I work for cash. My equity goes into the speed and execution quality I deliver to your company. You get a shipped product, not a co-founder who needs managing." },
+              { q: "Can I hire you for a small bug fix or a quick feature?", a: "I only take Deep Work Sprints ($3k+) or full end-to-end builds. I don't debug $200 problems. If you need that, hire someone on Upwork." },
+              { q: "Why should I pay you $10k+ when I can get a team overseas for $3k?", a: "Because that $3k team will cost you 6 months of runway, a failed launch, and a codebase you'll need to throw away. I guarantee execution. You pay once, you ship once, it works." },
+              { q: "What's your availability?", a: "I take on 1\u20132 clients at a time. If I'm booked, I'll tell you upfront and give you a realistic start date. No bait-and-switch." },
+            ].map((faq, i) => (
+              <motion.div key={faq.q} className="faq-item" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06, duration: 0.5 }}>
+                <p style={{ fontFamily: D, fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 12 }}>{faq.q}</p>
+                <p style={{ fontFamily: B, fontSize: 14, color: "#666", lineHeight: 1.75, maxWidth: 700 }}>{faq.a}</p>
+              </motion.div>
             ))}
           </div>
         </section>
 
-        {/* ── CONTACT ── */}
-        <section id="contact" className="contact">
-          <div className="section-label" style={{ justifyContent: "center" }}>Get in touch</div>
-          <h2>
-            Have an idea?<br />
-            <em>Let&apos;s build it.</em>
-          </h2>
-          <p className="contact-sub">
-            Currently available. Tell me what you&apos;re building and I&apos;ll tell you how I can help.
-          </p>
-          <div className="contact-btns">
-            <button onClick={copyEmail} className="btn-primary" style={{
-              background: copied ? "var(--accent)" : "var(--text)",
-              transition: "background 0.25s",
-              fontFamily: "var(--font-body)",
-            }}>
-              {copied ? "Copied to clipboard" : "adityaravindranath12@gmail.com"}
-            </button>
-            <a href="https://wa.me/919945622485" target="_blank" rel="noopener noreferrer" className="btn-ghost">
-              WhatsApp
-            </a>
+        {/* ═══ 9. CONTACT ═══ */}
+        <section id="contact" style={{ position: "relative", overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="aurora" style={{ top: "50%", transform: "translateY(-50%)", opacity: 0.3 }} />
+          <div className="contact-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "180px 40px", textAlign: "center", position: "relative" }}>
+            <motion.h2 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}
+              className="contact-head" style={{ fontFamily: D, fontWeight: 800, fontSize: "clamp(36px, 7vw, 72px)", letterSpacing: "-0.05em", lineHeight: 0.95, color: "#fff", marginBottom: 24 }}>
+              Let&apos;s build something<br /><span style={{ color: "#555" }}>massive.</span>
+            </motion.h2>
+            <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1, duration: 0.6 }}
+              style={{ fontFamily: B, fontSize: 16, color: "#555", lineHeight: 1.7, maxWidth: 420, margin: "0 auto 40px" }}>
+              Tell me what you&apos;re building. I&apos;ll tell you how fast I can ship it.
+            </motion.p>
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2, duration: 0.6 }}
+              className="contact-btns" style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={copyEmail} className="pill pill-white" style={{ background: copied ? "#00ff88" : "#fff", color: "#000", transition: "background .25s" }}>
+                {copied ? "Copied" : "adityaravindranath12@gmail.com"}
+              </button>
+              <a href="https://wa.me/919945622485" target="_blank" rel="noopener noreferrer" className="pill pill-ghost">WhatsApp</a>
+            </motion.div>
           </div>
         </section>
 
-        {/* ── FOOTER ── */}
-        <footer className="footer">
-          <div className="footer-inner">
-            <span className="footer-left">Aditya R. — Full-Stack Developer — Bangalore, India</span>
-            <div className="footer-links">
-              <a href="https://linkedin.com/in/adityar-analytics" target="_blank" rel="noopener noreferrer" className="footer-link">LinkedIn</a>
-              <a href="https://github.com/AlnicoTech2" target="_blank" rel="noopener noreferrer" className="footer-link">GitHub</a>
-              <a href="https://wa.me/919945622485" target="_blank" rel="noopener noreferrer" className="footer-link">WhatsApp</a>
+        {/* ═══ FOOTER ═══ */}
+        <footer style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "24px 40px" }}>
+          <div className="footer-inner" style={{ maxWidth: 1240, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontFamily: B, fontSize: 12, color: "#333" }}>Aditya R &middot; Bangalore</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              {[{ l: "LinkedIn", h: "https://linkedin.com/in/adityar-analytics" }, { l: "GitHub", h: "https://github.com/AlnicoTech2" }, { l: "WhatsApp", h: "https://wa.me/919945622485" }].map(lk => (
+                <a key={lk.l} href={lk.h} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: "#333", textDecoration: "none", fontFamily: B, transition: "color .2s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#aaa")} onMouseLeave={e => (e.currentTarget.style.color = "#333")}>{lk.l}</a>
+              ))}
             </div>
           </div>
         </footer>
-      </div>
+
+      </main>
     </>
+  );
+}
+
+/* ═══ HELPERS ═══ */
+
+function SH({ label: l, title, sub }: { label: string; title: string; sub?: string }) {
+  return (
+    <div className="sec-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 64 }}>
+      <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+        <span style={{ fontFamily: "var(--font-body)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#444", display: "block", marginBottom: 14 }}>{l}</span>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 44, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1 }}>{title}</h2>
+      </motion.div>
+      {sub && <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1, duration: 0.5 }}
+        style={{ fontFamily: "var(--font-body)", color: "#555", lineHeight: 1.7, maxWidth: 340, textAlign: "right", fontSize: 14 }}>{sub}</motion.p>}
+    </div>
   );
 }
