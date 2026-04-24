@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, type MouseEvent as RE } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense, type MouseEvent as RE } from "react";
 import { motion, useInView, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Environment, Float } from "@react-three/drei";
+import * as THREE from "three";
 
 /* ═══════════════════════════════════════════════
    DATA
@@ -208,138 +211,140 @@ function StatPill({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Hero3D({ variant = 0 }: { variant?: number }) {
-  const orbColors = [
-    ["#b045ff", "#3a90ff"],
-    ["#3fffb1", "#d6ff3b"],
-    ["#3a90ff", "#00d4ff"],
-    ["#ff4db8", "#b045ff"],
-    ["#d6ff3b", "#3fffb1"],
-  ][variant % 5];
+/* ═══════════════════════════════════════════════
+   REAL 3D HERO SCENE (three.js + R3F)
+   ═══════════════════════════════════════════════ */
 
-  const cubes = [
-    { x: 60, y: 50, w: 180, h: 140, z: 3, shade: 1 },
-    { x: 250, y: 120, w: 140, h: 200, z: 2, shade: 0.85 },
-    { x: 40, y: 260, w: 160, h: 120, z: 2, shade: 0.7 },
-    { x: 220, y: 320, w: 180, h: 140, z: 1, shade: 0.6 },
-    { x: 360, y: 60, w: 120, h: 160, z: 1, shade: 0.55 },
-    { x: 400, y: 260, w: 100, h: 120, z: 0, shade: 0.45 },
-  ];
+const CUBE_CONFIG = [
+  { pos: [-2.4, 1.8, 0.2] as [number, number, number], size: [2.0, 0.7, 1.2] as [number, number, number] },
+  { pos: [1.4, 2.2, -0.4] as [number, number, number], size: [1.3, 0.8, 1.1] as [number, number, number] },
+  { pos: [-1.6, 0.2, 0.6] as [number, number, number], size: [1.8, 1.2, 1.0] as [number, number, number] },
+  { pos: [1.0, 0.0, 0.4] as [number, number, number], size: [1.6, 1.4, 1.2] as [number, number, number] },
+  { pos: [2.6, -1.4, -0.2] as [number, number, number], size: [1.4, 1.0, 1.3] as [number, number, number] },
+  { pos: [-2.2, -1.8, 0.4] as [number, number, number], size: [1.6, 0.9, 1.1] as [number, number, number] },
+  { pos: [0.2, -2.4, 0.0] as [number, number, number], size: [1.8, 1.0, 1.2] as [number, number, number] },
+  { pos: [0.8, -1.0, 1.6] as [number, number, number], size: [0.9, 1.2, 0.9] as [number, number, number] },
+];
+
+function MetallicCubes() {
+  const group = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (group.current) {
+      group.current.rotation.y += delta * 0.08;
+      group.current.rotation.x = Math.sin(Date.now() * 0.0002) * 0.1;
+    }
+  });
 
   return (
-    <div style={{
-      position: "relative", width: "100%", height: "100%",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      overflow: "visible",
-    }}>
-      {/* Ambient backdrop */}
+    <group ref={group}>
+      {CUBE_CONFIG.map((c, i) => (
+        <Float key={i} speed={1 + (i % 3) * 0.4} rotationIntensity={0.1} floatIntensity={0.3}>
+          <mesh position={c.pos} castShadow receiveShadow>
+            <boxGeometry args={c.size} />
+            <meshPhysicalMaterial
+              color="#1a1a22"
+              metalness={1}
+              roughness={0.18}
+              clearcoat={1}
+              clearcoatRoughness={0.05}
+              envMapIntensity={1.4}
+              reflectivity={0.95}
+            />
+          </mesh>
+        </Float>
+      ))}
+    </group>
+  );
+}
+
+function GlowOrb({ variant = 0 }: { variant?: number }) {
+  const orbColorSets = [
+    ["#3a90ff", "#b045ff"],
+    ["#3fffb1", "#d6ff3b"],
+    ["#ff4db8", "#b045ff"],
+    ["#00d4ff", "#3fffb1"],
+    ["#b045ff", "#ff4db8"],
+  ];
+  const colors = orbColorSets[variant % orbColorSets.length];
+  const groupRef = useRef<THREE.Group>(null);
+  const yellowRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = state.clock.elapsedTime * 0.4;
+      groupRef.current.rotation.z = state.clock.elapsedTime * 0.25;
+    }
+    if (yellowRef.current) {
+      yellowRef.current.rotation.x = state.clock.elapsedTime * 0.8;
+      yellowRef.current.rotation.y = state.clock.elapsedTime * 0.6;
+    }
+  });
+
+  return (
+    <group position={[0.4, 0.2, 0.5]}>
+      {/* Central orb */}
+      <group ref={groupRef}>
+        <mesh>
+          <sphereGeometry args={[0.45, 48, 48]} />
+          <meshBasicMaterial color={colors[0]} transparent opacity={0.95} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[0.7, 32, 32]} />
+          <meshBasicMaterial color={colors[1]} transparent opacity={0.25} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[1.0, 24, 24]} />
+          <meshBasicMaterial color={colors[0]} transparent opacity={0.08} />
+        </mesh>
+      </group>
+      {/* Point light emanating from orb */}
+      <pointLight color={colors[0]} intensity={6} distance={8} decay={2} />
+      {/* Yellow accent cube */}
+      <mesh ref={yellowRef} position={[-0.7, 0.8, 0.5]}>
+        <boxGeometry args={[0.25, 0.25, 0.25]} />
+        <meshBasicMaterial color="#d6ff3b" />
+      </mesh>
+    </group>
+  );
+}
+
+function SceneLighting() {
+  return (
+    <>
+      <ambientLight intensity={0.05} />
+      <directionalLight position={[6, 8, 4]} intensity={1.4} color="#ffffff" castShadow />
+      <directionalLight position={[-5, -2, -6]} intensity={0.6} color="#8899ff" />
+      <directionalLight position={[0, -5, 5]} intensity={0.3} color="#ff88cc" />
+      <pointLight position={[4, 3, 4]} color="#ffffff" intensity={1} />
+    </>
+  );
+}
+
+function Hero3D({ variant = 0 }: { variant?: number }) {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      {/* Backdrop glow */}
       <div style={{
         position: "absolute", inset: "10%",
-        background: `radial-gradient(circle at 50% 50%, ${orbColors[0]}22 0%, transparent 60%)`,
-        filter: "blur(40px)",
+        background: "radial-gradient(circle at 55% 50%, rgba(58,144,255,0.18) 0%, rgba(176,69,255,0.08) 40%, transparent 70%)",
+        filter: "blur(60px)", pointerEvents: "none",
       }} />
 
-      <motion.div
-        animate={{ y: [0, -12, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ position: "relative", width: 560, height: 500 }}
+      <Canvas
+        shadows
+        dpr={[1, 2]}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+        camera={{ position: [0, 0, 7.5], fov: 38 }}
+        style={{ background: "transparent" }}
       >
-        <svg viewBox="0 0 560 500" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
-          <defs>
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-top-${i}`} id={`grad-top-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fff" stopOpacity={0.55 * c.shade} />
-                <stop offset="50%" stopColor="#bcbcc8" stopOpacity={0.35 * c.shade} />
-                <stop offset="100%" stopColor="#2a2a32" stopOpacity={0.85} />
-              </linearGradient>
-            ))}
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-left-${i}`} id={`grad-left-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1a1a20" stopOpacity={1} />
-                <stop offset="100%" stopColor="#0a0a0c" stopOpacity={1} />
-              </linearGradient>
-            ))}
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-right-${i}`} id={`grad-right-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#55555c" stopOpacity={0.65 * c.shade} />
-                <stop offset="100%" stopColor="#18181c" stopOpacity={1} />
-              </linearGradient>
-            ))}
-            <radialGradient id="heroOrb" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#fff" stopOpacity={0.95} />
-              <stop offset="20%" stopColor={orbColors[0]} stopOpacity={0.95} />
-              <stop offset="70%" stopColor={orbColors[1]} stopOpacity={0.6} />
-              <stop offset="100%" stopColor={orbColors[1]} stopOpacity={0} />
-            </radialGradient>
-            <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
-            </filter>
-            <filter id="edgeGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
-            </filter>
-          </defs>
-
-          {/* Isometric cubes — back to front */}
-          {[...cubes].sort((a, b) => a.z - b.z).map((c, i) => {
-            const depth = 24;
-            // Top face (rhombus)
-            const topPts = `${c.x},${c.y + depth} ${c.x + c.w / 2},${c.y} ${c.x + c.w},${c.y + depth} ${c.x + c.w / 2},${c.y + depth * 2}`;
-            // Left face (parallelogram)
-            const leftPts = `${c.x},${c.y + depth} ${c.x + c.w / 2},${c.y + depth * 2} ${c.x + c.w / 2},${c.y + c.h + depth} ${c.x},${c.y + c.h}`;
-            // Right face (parallelogram)
-            const rightPts = `${c.x + c.w / 2},${c.y + depth * 2} ${c.x + c.w},${c.y + depth} ${c.x + c.w},${c.y + c.h} ${c.x + c.w / 2},${c.y + c.h + depth}`;
-            const idx = cubes.indexOf(c);
-            return (
-              <g key={idx} opacity={0.55 + 0.45 * c.shade}>
-                {/* Shadow */}
-                <ellipse cx={c.x + c.w / 2} cy={c.y + c.h + depth + 6} rx={c.w / 2 + 10} ry={6}
-                  fill="#000" opacity={0.4} filter="url(#orbGlow)" />
-                <polygon points={leftPts} fill={`url(#grad-left-${idx})`} stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
-                <polygon points={rightPts} fill={`url(#grad-right-${idx})`} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
-                <polygon points={topPts} fill={`url(#grad-top-${idx})`} stroke={`rgba(255,255,255,${0.3 * c.shade})`} strokeWidth="0.5" />
-                {/* Edge highlight on top face */}
-                <line x1={c.x + c.w / 2} y1={c.y} x2={c.x + c.w} y2={c.y + depth}
-                  stroke={`rgba(255,255,255,${0.6 * c.shade})`} strokeWidth="1" filter="url(#edgeGlow)" />
-                <line x1={c.x + c.w} y1={c.y + depth} x2={c.x + c.w} y2={c.y + c.h}
-                  stroke={`rgba(255,255,255,${0.2 * c.shade})`} strokeWidth="0.5" />
-              </g>
-            );
-          })}
-
-          {/* Glow orb center-ish */}
-          <g transform="translate(280, 260)">
-            <circle r="55" fill="url(#heroOrb)" filter="url(#orbGlow)" opacity="0.9" />
-            <circle r="80" fill={orbColors[0]} opacity="0.08" filter="url(#orbGlow)" />
-          </g>
-
-          {/* Yellow square accent */}
-          <g transform="translate(235, 215) rotate(12)">
-            <rect x="-10" y="-10" width="20" height="20" fill="var(--yellow)" rx="2"
-              style={{ filter: `drop-shadow(0 0 12px var(--yellow))` }} />
-          </g>
-
-          {/* Sparkles */}
-          {[{ x: 470, y: 140, r: 3 }, { x: 100, y: 420, r: 2 }, { x: 500, y: 400, r: 2.5 }].map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#fff" opacity="0.6">
-              <animate attributeName="opacity" values="0.2;1;0.2" dur={`${2 + i}s`} repeatCount="indefinite" />
-            </circle>
-          ))}
-        </svg>
-
-        {/* Animated glow pulse behind orb */}
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.9, 0.6] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute", left: "50%", top: "52%",
-            transform: "translate(-50%, -50%)",
-            width: 180, height: 180,
-            background: `radial-gradient(circle, ${orbColors[0]}66 0%, ${orbColors[1]}33 40%, transparent 70%)`,
-            filter: "blur(30px)",
-            pointerEvents: "none",
-          }}
-        />
-      </motion.div>
+        <Suspense fallback={null}>
+          <Environment preset="city" />
+          <MetallicCubes />
+          <GlowOrb variant={variant} />
+        </Suspense>
+        <SceneLighting />
+        <fog attach="fog" args={["#000000", 8, 18]} />
+      </Canvas>
     </div>
   );
 }
