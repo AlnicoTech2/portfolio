@@ -209,137 +209,111 @@ function StatPill({ children }: { children: React.ReactNode }) {
 }
 
 function Hero3D({ variant = 0 }: { variant?: number }) {
+  const ease = [0.16, 1, 0.3, 1] as const;
   const orbColors = [
     ["#b045ff", "#3a90ff"],
     ["#3fffb1", "#d6ff3b"],
     ["#3a90ff", "#00d4ff"],
-    ["#ff4db8", "#b045ff"],
-    ["#d6ff3b", "#3fffb1"],
-  ][variant % 5];
+  ][variant % 3];
 
   const cubes = [
-    { x: 60, y: 50, w: 180, h: 140, z: 3, shade: 1 },
-    { x: 250, y: 120, w: 140, h: 200, z: 2, shade: 0.85 },
-    { x: 40, y: 260, w: 160, h: 120, z: 2, shade: 0.7 },
-    { x: 220, y: 320, w: 180, h: 140, z: 1, shade: 0.6 },
-    { x: 360, y: 60, w: 120, h: 160, z: 1, shade: 0.55 },
-    { x: 400, y: 260, w: 100, h: 120, z: 0, shade: 0.45 },
+    { x: -160, y: -120, size: 140, rot: 15, bright: 0.85 },
+    { x: 40, y: -80, size: 180, rot: -10, bright: 1 },
+    { x: -80, y: 80, size: 120, rot: 25, bright: 0.6 },
+    { x: 140, y: 60, size: 100, rot: -20, bright: 0.7 },
+    { x: 200, y: -40, size: 90, rot: 8, bright: 0.5 },
   ];
 
   return (
     <div style={{
       position: "relative", width: "100%", height: "100%",
       display: "flex", alignItems: "center", justifyContent: "center",
-      overflow: "visible",
+      perspective: 1200,
     }}>
-      {/* Ambient backdrop */}
-      <div style={{
-        position: "absolute", inset: "10%",
-        background: `radial-gradient(circle at 50% 50%, ${orbColors[0]}22 0%, transparent 60%)`,
-        filter: "blur(40px)",
-      }} />
-
       <motion.div
-        animate={{ y: [0, -12, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ position: "relative", width: 560, height: 500 }}
+        animate={{ rotateY: [0, 8, 0, -8, 0], rotateX: [0, -4, 0, 4, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        style={{ position: "relative", width: 480, height: 480, transformStyle: "preserve-3d" }}
       >
-        <svg viewBox="0 0 560 500" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
-          <defs>
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-top-${i}`} id={`grad-top-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fff" stopOpacity={0.55 * c.shade} />
-                <stop offset="50%" stopColor="#bcbcc8" stopOpacity={0.35 * c.shade} />
-                <stop offset="100%" stopColor="#2a2a32" stopOpacity={0.85} />
-              </linearGradient>
-            ))}
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-left-${i}`} id={`grad-left-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1a1a20" stopOpacity={1} />
-                <stop offset="100%" stopColor="#0a0a0c" stopOpacity={1} />
-              </linearGradient>
-            ))}
-            {cubes.map((c, i) => (
-              <linearGradient key={`grad-right-${i}`} id={`grad-right-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#55555c" stopOpacity={0.65 * c.shade} />
-                <stop offset="100%" stopColor="#18181c" stopOpacity={1} />
-              </linearGradient>
-            ))}
-            <radialGradient id="heroOrb" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#fff" stopOpacity={0.95} />
-              <stop offset="20%" stopColor={orbColors[0]} stopOpacity={0.95} />
-              <stop offset="70%" stopColor={orbColors[1]} stopOpacity={0.6} />
-              <stop offset="100%" stopColor={orbColors[1]} stopOpacity={0} />
-            </radialGradient>
-            <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
-            </filter>
-            <filter id="edgeGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
-            </filter>
-          </defs>
+        {cubes.map((c, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.15 * i, duration: 0.9, ease }}
+            style={{
+              position: "absolute",
+              left: "50%", top: "50%",
+              width: c.size, height: c.size,
+              transform: `translate3d(${c.x}px, ${c.y}px, 0) rotateX(${c.rot}deg) rotateY(${c.rot}deg)`,
+              transformStyle: "preserve-3d",
+            }}
+          >
+            <div style={{
+              width: "100%", height: "100%",
+              background: `
+                linear-gradient(135deg,
+                  rgba(255,255,255,${0.22 * c.bright}) 0%,
+                  rgba(90,90,100,${0.15 * c.bright}) 40%,
+                  rgba(20,20,24,0.6) 100%
+                )`,
+              border: `1px solid rgba(255,255,255,${0.18 * c.bright})`,
+              boxShadow: `
+                inset 0 1px 0 rgba(255,255,255,${0.35 * c.bright}),
+                inset 0 -20px 40px rgba(0,0,0,0.5),
+                0 20px 60px rgba(0,0,0,0.6)
+              `,
+              borderRadius: 4,
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: "35%",
+                background: `linear-gradient(180deg, rgba(255,255,255,${0.4 * c.bright}) 0%, transparent 100%)`,
+                mixBlendMode: "screen",
+              }} />
+              <div style={{
+                position: "absolute", bottom: -10, left: "20%", right: "20%", height: 30,
+                background: orbColors[1], opacity: 0.2 * c.bright, filter: "blur(20px)",
+              }} />
+            </div>
+          </motion.div>
+        ))}
 
-          {/* Isometric cubes — back to front */}
-          {[...cubes].sort((a, b) => a.z - b.z).map((c, i) => {
-            const depth = 24;
-            // Top face (rhombus)
-            const topPts = `${c.x},${c.y + depth} ${c.x + c.w / 2},${c.y} ${c.x + c.w},${c.y + depth} ${c.x + c.w / 2},${c.y + depth * 2}`;
-            // Left face (parallelogram)
-            const leftPts = `${c.x},${c.y + depth} ${c.x + c.w / 2},${c.y + depth * 2} ${c.x + c.w / 2},${c.y + c.h + depth} ${c.x},${c.y + c.h}`;
-            // Right face (parallelogram)
-            const rightPts = `${c.x + c.w / 2},${c.y + depth * 2} ${c.x + c.w},${c.y + depth} ${c.x + c.w},${c.y + c.h} ${c.x + c.w / 2},${c.y + c.h + depth}`;
-            const idx = cubes.indexOf(c);
-            return (
-              <g key={idx} opacity={0.55 + 0.45 * c.shade}>
-                {/* Shadow */}
-                <ellipse cx={c.x + c.w / 2} cy={c.y + c.h + depth + 6} rx={c.w / 2 + 10} ry={6}
-                  fill="#000" opacity={0.4} filter="url(#orbGlow)" />
-                <polygon points={leftPts} fill={`url(#grad-left-${idx})`} stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
-                <polygon points={rightPts} fill={`url(#grad-right-${idx})`} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
-                <polygon points={topPts} fill={`url(#grad-top-${idx})`} stroke={`rgba(255,255,255,${0.3 * c.shade})`} strokeWidth="0.5" />
-                {/* Edge highlight on top face */}
-                <line x1={c.x + c.w / 2} y1={c.y} x2={c.x + c.w} y2={c.y + depth}
-                  stroke={`rgba(255,255,255,${0.6 * c.shade})`} strokeWidth="1" filter="url(#edgeGlow)" />
-                <line x1={c.x + c.w} y1={c.y + depth} x2={c.x + c.w} y2={c.y + c.h}
-                  stroke={`rgba(255,255,255,${0.2 * c.shade})`} strokeWidth="0.5" />
-              </g>
-            );
-          })}
-
-          {/* Glow orb center-ish */}
-          <g transform="translate(280, 260)">
-            <circle r="55" fill="url(#heroOrb)" filter="url(#orbGlow)" opacity="0.9" />
-            <circle r="80" fill={orbColors[0]} opacity="0.08" filter="url(#orbGlow)" />
-          </g>
-
-          {/* Yellow square accent */}
-          <g transform="translate(235, 215) rotate(12)">
-            <rect x="-10" y="-10" width="20" height="20" fill="var(--yellow)" rx="2"
-              style={{ filter: `drop-shadow(0 0 12px var(--yellow))` }} />
-          </g>
-
-          {/* Sparkles */}
-          {[{ x: 470, y: 140, r: 3 }, { x: 100, y: 420, r: 2 }, { x: 500, y: 400, r: 2.5 }].map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#fff" opacity="0.6">
-              <animate attributeName="opacity" values="0.2;1;0.2" dur={`${2 + i}s`} repeatCount="indefinite" />
-            </circle>
-          ))}
-        </svg>
-
-        {/* Animated glow pulse behind orb */}
+        {/* Glow orb (flower accent) */}
         <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.9, 0.6] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ scale: [1, 1.12, 1], rotate: [0, 180, 360] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
           style={{
-            position: "absolute", left: "50%", top: "52%",
+            position: "absolute", left: "50%", top: "50%",
+            width: 90, height: 90,
             transform: "translate(-50%, -50%)",
-            width: 180, height: 180,
-            background: `radial-gradient(circle, ${orbColors[0]}66 0%, ${orbColors[1]}33 40%, transparent 70%)`,
-            filter: "blur(30px)",
-            pointerEvents: "none",
+            background: `radial-gradient(circle at 30% 30%, ${orbColors[0]} 0%, ${orbColors[1]} 60%, transparent 80%)`,
+            borderRadius: "50%",
+            filter: "blur(2px)",
+            boxShadow: `0 0 80px ${orbColors[0]}, 0 0 140px ${orbColors[1]}`,
+          }}
+        />
+        <motion.div
+          animate={{ rotate: [360, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          style={{
+            position: "absolute", left: "50%", top: "50%",
+            width: 24, height: 24,
+            transform: "translate(-50%, -50%)",
+            background: "var(--yellow)",
+            borderRadius: 4,
+            boxShadow: "0 0 20px var(--yellow)",
           }}
         />
       </motion.div>
+
+      {/* Ambient backdrop glow */}
+      <div style={{
+        position: "absolute", inset: "20%", zIndex: -1,
+        background: `radial-gradient(circle, ${orbColors[0]}22 0%, transparent 60%)`,
+        filter: "blur(60px)",
+      }} />
     </div>
   );
 }
@@ -576,7 +550,7 @@ export default function Home() {
         {/* ═══ NAV ═══ */}
         <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}
           style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, borderBottom: "1px solid var(--border)", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
-          <div className="nav-inner" style={{ maxWidth: 1440, margin: "0 auto", padding: "0 40px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="nav-inner" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
               <span style={{ fontFamily: D, fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-0.05em" }}>
                 AR
@@ -610,20 +584,20 @@ export default function Home() {
         </motion.nav>
 
         {/* ═══ 1. HERO ═══ */}
-        <section style={{ position: "relative", overflow: "hidden" }}>
-          <div className="hero-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "140px 48px 64px", width: "100%" }}>
-            <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 48, alignItems: "center", minHeight: 560 }}>
+        <section style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden" }}>
+          <div className="hero-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "160px 40px 60px", width: "100%" }}>
+            <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 40, alignItems: "center" }}>
               <div>
-                <div style={{ height: 28, marginBottom: 36, overflow: "hidden" }}>
+                <div style={{ height: 24, marginBottom: 32, overflow: "hidden" }}>
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={rotatingLabel}
-                      initial={{ y: 28, opacity: 0 }}
+                      initial={{ y: 24, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -28, opacity: 0 }}
+                      exit={{ y: -24, opacity: 0 }}
                       transition={{ duration: 0.4, ease }}
                       style={{
-                        fontFamily: M, fontSize: 15, color: "var(--accent)",
+                        fontFamily: M, fontSize: 14, color: "var(--accent)",
                         letterSpacing: "0.02em", display: "inline-block",
                       }}
                     >
@@ -634,9 +608,9 @@ export default function Home() {
                 </div>
 
                 <h1 className="hero-headline" style={{
-                  fontFamily: D, fontWeight: 800, fontSize: "clamp(52px, 8vw, 128px)",
-                  letterSpacing: "-0.045em", lineHeight: 0.95, color: "#fff",
-                  marginBottom: 56, maxWidth: 820,
+                  fontFamily: D, fontWeight: 800, fontSize: "clamp(48px, 7.5vw, 96px)",
+                  letterSpacing: "-0.04em", lineHeight: 0.98, color: "#fff",
+                  marginBottom: 48, maxWidth: 720,
                 }}>
                   <WordReveal text="The Solo" />
                   <br />
@@ -654,7 +628,7 @@ export default function Home() {
               <motion.div
                 className="hero-3d"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.3 }}
-                style={{ height: 560, position: "relative", width: "100%" }}
+                style={{ height: 520, position: "relative" }}
               >
                 <Hero3D variant={rotatingIndex} />
               </motion.div>
@@ -662,29 +636,39 @@ export default function Home() {
           </div>
 
           {/* Client logos marquee */}
-          <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "26px 0", overflow: "hidden" }}>
+          <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "28px 0", overflow: "hidden", marginTop: 40 }}>
             <div className="marquee-track">
               {[...CLIENT_LOGOS, ...CLIENT_LOGOS].map((name, i) => (
                 <span key={i} style={{
-                  fontFamily: D, fontSize: 24, fontWeight: 700, color: "#fff",
-                  padding: "0 48px", letterSpacing: "-0.02em", whiteSpace: "nowrap",
-                  opacity: 0.75,
+                  fontFamily: D, fontSize: 22, fontWeight: 700, color: "#fff",
+                  padding: "0 44px", letterSpacing: "-0.02em", whiteSpace: "nowrap",
+                  opacity: 0.7,
                 }}>{name}</span>
               ))}
             </div>
           </div>
 
           {/* Stats pills */}
-          <div style={{ padding: "40px 48px 72px" }}>
-            <div className="stats-pills" style={{ maxWidth: 1440, margin: "0 auto", display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ padding: "32px 40px 0" }}>
+            <div className="stats-pills" style={{ maxWidth: 1280, margin: "0 auto", display: "flex", gap: 12, flexWrap: "wrap" }}>
               {STATS.map(s => <StatPill key={s}>{s}</StatPill>)}
+            </div>
+          </div>
+
+          {/* Small avatar decoration */}
+          <div style={{ padding: "40px", maxWidth: 1280, margin: "0 auto", width: "100%" }}>
+            <div style={{ width: 32, height: 32, border: "1px solid var(--border-bright)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="4" stroke="var(--accent-dim)" strokeWidth="1.5" />
+                <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="var(--accent-dim)" strokeWidth="1.5" />
+              </svg>
             </div>
           </div>
         </section>
 
         {/* ═══ 2. AMBITIOUS FOUNDERS (CASE STUDIES) ═══ */}
         <section id="work" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" ref={statsRef} style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
+          <div className="sec-pad" ref={statsRef} style={{ maxWidth: 1280, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
                 style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
@@ -816,7 +800,7 @@ export default function Home() {
 
         {/* ═══ 3. EXPERTISE ═══ */}
         <section id="expertise" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
+          <div className="sec-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Expertise
@@ -846,7 +830,7 @@ export default function Home() {
 
         {/* ═══ 4. TESTIMONIALS ═══ */}
         <section style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
+          <div className="sec-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Testimonials
@@ -873,7 +857,7 @@ export default function Home() {
 
         {/* ═══ 5. SERVICES ═══ */}
         <section id="services" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
+          <div className="sec-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Pricing
@@ -923,7 +907,7 @@ export default function Home() {
         {/* ═══ 6. LET'S BUILD TOGETHER ═══ */}
         <section id="contact" style={{ position: "relative", borderTop: "1px solid var(--border)", overflow: "hidden", minHeight: 520 }}>
           <StarField />
-          <div className="cta-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "160px 40px", position: "relative", zIndex: 2 }}>
+          <div className="cta-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "160px 40px", position: "relative", zIndex: 2 }}>
             <div className="cta-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 60, alignItems: "center" }}>
               <div>
                 <motion.h2 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}
@@ -958,7 +942,7 @@ export default function Home() {
 
         {/* ═══ FOOTER ═══ */}
         <footer id="about" style={{ borderTop: "1px solid var(--border)", padding: "40px 40px" }}>
-          <div className="footer-inner" style={{ maxWidth: 1440, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
+          <div className="footer-inner" style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontFamily: D, fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: "-0.05em" }}>AR</span>
