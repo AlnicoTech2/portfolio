@@ -16,8 +16,7 @@ Live at: https://adityaravindranath.vercel.app
 ## Tech Stack
 - Next.js 16 (App Router) + TypeScript
 - Tailwind CSS v4 (PostCSS plugin approach — NOT the v3 config file pattern)
-- Fonts: Inter (display/headlines), JetBrains Mono (labels/stats), Outfit (body) via next/font/google
-- framer-motion for animations
+- Fonts: Syne (display/headlines) + Outfit (body) via next/font/google
 - Deployed on Vercel — manual deploy with alias
 
 ## Commands
@@ -30,57 +29,51 @@ npx vercel alias set <deployment-url> adityaravindranath.vercel.app   # Point al
 ## Structure
 ```
 app/
-  layout.tsx     # Root layout — metadata, fonts (Inter + JetBrains Mono + Outfit), globals.css
+  layout.tsx     # Root layout — metadata, fonts (Syne + Outfit), globals.css
   page.tsx       # Entire site (single page, "use client")
-  globals.css    # Global styles + Tailwind directive + CSS variables
+  globals.css    # Global styles + Tailwind directives + CSS variables
   favicon.ico
 public/          # Static assets
 ```
 
-## Design System (UIX Labs-inspired)
-- **Aesthetic**: Premium dark tech — pure black bg, mint/teal accent, bold geometric headlines, mono terminal labels
-- **Color palette**:
-  - `--black: #000000`
-  - `--white: #ffffff`
-  - `--accent: #3fffb1` (mint/teal — CTAs, accents)
-  - `--yellow: #d6ff3b` (logo X mark, star highlights)
-  - `--text-dim: #6b6b6b`, `--text-mid: #aaaaaa`
-  - `--border: rgba(255,255,255,0.08)`
-  - `--grid-line: rgba(255,255,255,0.035)` (vertical grid overlay)
-- **Typography**:
-  - Inter (display, weights 700-900) — bold headlines, negative letter-spacing
-  - JetBrains Mono — small labels, stats, terminal-style `>` prefixes
-  - Outfit — body paragraphs
-- **Layout elements**:
-  - Fixed vertical grid lines overlay (`<GridLines />`)
-  - Rotating hero label with `AnimatePresence` (5 taglines)
-  - CSS 3D cube composition in hero (`<Hero3D />`) — no three.js
-  - Client-name marquee
-  - Teal-bordered stat pills (outlined mono)
-  - CTA section with `<StarField />` + `<RobotMascot />`
-  - Mint CTA button (`.mint-btn`), ghost button (`.ghost-btn`)
+## Design
+- **Aesthetic**: Editorial brutalist — warm gold accent, sharp geometry, generous whitespace
+- **Color palette**: BG #060608, text #eae6e1 (warm off-white), accent #c9a96e (warm gold), dim #7a756f
+- **Typography**: Syne (headlines — geometric, futuristic), Outfit (body — clean geometric sans)
+- **Layout**: Sharp corners, grid lines as dividers, no rounded corners
+- **Grain overlay**: Animated SVG noise texture for premium feel
 
 ## Key Rules
 - This is a **single-page site**. Everything is in `app/page.tsx`. Do not split into components unless explicitly asked.
-- Tailwind v4 syntax — `@import "tailwindcss"` in globals.css, NOT `@tailwind base/components/utilities`.
+- Tailwind v4 syntax — uses `@import "tailwindcss"` in globals.css, NOT `@tailwind base/components/utilities`.
 - No external UI libraries.
 - No backend, no API routes, no database.
-- Keep bundle minimal — no three.js / Spline / heavy 3D libs. All 3D is CSS/SVG/framer-motion.
+- Keep bundle minimal — no heavy dependencies.
 - Dark theme only.
 - **IMPORTANT**: After every deploy, re-point the alias: `npx vercel alias set <url> adityaravindranath.vercel.app`
 
 ## Content Sections (in page.tsx)
-1. **Nav** — fixed, logo "AR ×" left, links (Work, Expertise, Pricing, About), Start a project mint CTA right
-2. **Hero** — rotating mono label, massive 2-line headline "The Solo / Engineering Studio", Start a project CTA, 3D cube + glow orb composition right
-3. **Client marquee** — infinite scroll of 12 clients (Alnico, Gumbo, Raaz, BeautyAI, GoodLooksAI, TarotAI, Astravoro, Matcho, Baatein, Lumii, Polimart, Gyanify)
-4. **Stats pills** — Bootstrapped · 22+ Apps · 10+ Clients · 4-wk Delivery · 100% Ownership
-5. **Case studies** — 3 detailed cases (Raaz, GoodLooksAI, Astravoro) with Problem/Architecture/Outcome + preview card with colored glow
-6. **More apps** — 15 additional apps with Play Store links
-7. **Expertise** — 6 categories in 3-col grid: Mobile, Web, Backend, AI Apps, Payments, Infra
-8. **Testimonials** — 2 quotes: Rajan Bhagat (Alnico), Swatantra (Gumbo)
-9. **Services** — 3 pricing cards: Product Launch ($10-25k+), Fractional Lead ($4-8k/mo), Deep Work Sprint ($3-7k)
-10. **LET'S BUILD TOGETHER CTA** — massive headline (accent colored), copy email button, WhatsApp button, robot mascot, star field background
-11. **Footer** — logo + name + social links (LinkedIn, GitHub, WhatsApp)
+1. **Nav** — fixed, name left, links + Hire CTA right, mobile: just Hire button
+2. **Hero** — massive Syne headline "I build apps. You ship faster.", availability badge, CTAs
+3. **Stats bar** — 4-col: 19+ Apps shipped, 2 Clients served, 100% End-to-end, 0 Compromises
+4. **Showcase grid** — 3x3 image grid from GoodLooksAI CloudFront CDN (backend-swappable)
+5. **Tech marquee** — scrolling ticker of 20 technologies
+6. **Process** — 4 steps: Discovery, Architecture, Build, Ship
+7. **Featured work** — 3 detailed projects: Raaz, Lumii, Astravoro (editorial row layout)
+8. **More apps** — 16 additional apps in compact grid (Alnico + Gumbo Tech), Play Store links
+9. **Testimonials** — 2 full-width quotes: Rajan Bhagat (Alnico), Swatantra (Gumbo Tech)
+10. **Services** — 3 pricing tiers with sharp-cornered cards:
+    - MVP Build: ₹1.5L–₹4L, 2–4 weeks (Most popular)
+    - Monthly Retainer: ₹25K–₹60K/mo
+    - Feature Sprint: ₹30K–₹80K, 3–7 days
+11. **Contact** — big headline + email copy button + WhatsApp
+12. **Footer** — name + social links
+
+## Image Grid (Showcase)
+- Uses GoodLooksAI CloudFront: `https://d3k1yij1rdqtzo.cloudfront.net/templates/{templateId}.jpg`
+- 9 images across 4 categories: Temple & God, Good Morning, Good Afternoon, Daily Vibe
+- **To swap images**: change S3 file at `goodlooksai-images/templates/{templateId}.jpg` — no portfolio code change needed (backend change)
+- Can also use BeautyAI CDN for beauty portraits: `https://dlxhzcf153by3.cloudfront.net/paywall/{0-8}.jpg`
 
 ## Clients Featured
 - **Alnico Tech** (Rajan Bhagat, Founder) — 10+ apps: Raaz, Matcho, Baatein, Bharat Poster suite, Islamic Quotes, Indian Poster, BeautyAI, GoodLooksAI, Tarot AI
