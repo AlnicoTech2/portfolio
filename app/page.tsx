@@ -576,7 +576,7 @@ export default function Home() {
         {/* ═══ NAV ═══ */}
         <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}
           style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, borderBottom: "1px solid var(--border)", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
-          <div className="nav-inner" style={{ maxWidth: 1760, margin: "0 auto", padding: "0 clamp(24px, 3vw, 72px)", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="nav-inner" style={{ maxWidth: 1440, margin: "0 auto", padding: "0 40px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <a href="#" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
               <span style={{ fontFamily: D, fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-0.05em" }}>
                 AR
@@ -611,8 +611,8 @@ export default function Home() {
 
         {/* ═══ 1. HERO ═══ */}
         <section style={{ position: "relative", overflow: "hidden" }}>
-          <div className="hero-pad" style={{ maxWidth: 1760, margin: "0 auto", padding: "140px clamp(24px, 3vw, 72px) 64px", width: "100%" }}>
-            <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 60, alignItems: "center", minHeight: 600 }}>
+          <div className="hero-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "140px 48px 64px", width: "100%" }}>
+            <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 48, alignItems: "center", minHeight: 560 }}>
               <div>
                 <div style={{ height: 28, marginBottom: 36, overflow: "hidden" }}>
                   <AnimatePresence mode="wait">
@@ -675,8 +675,8 @@ export default function Home() {
           </div>
 
           {/* Stats pills */}
-          <div style={{ padding: "40px clamp(24px, 3vw, 72px) 72px" }}>
-            <div className="stats-pills" style={{ maxWidth: 1760, margin: "0 auto", display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ padding: "40px 48px 72px" }}>
+            <div className="stats-pills" style={{ maxWidth: 1440, margin: "0 auto", display: "flex", gap: 12, flexWrap: "wrap" }}>
               {STATS.map(s => <StatPill key={s}>{s}</StatPill>)}
             </div>
           </div>
@@ -684,7 +684,7 @@ export default function Home() {
 
         {/* ═══ 2. AMBITIOUS FOUNDERS (CASE STUDIES) ═══ */}
         <section id="work" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" ref={statsRef} style={{ maxWidth: 1760, margin: "0 auto", padding: "120px clamp(24px, 3vw, 72px)" }}>
+          <div className="sec-pad" ref={statsRef} style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
                 style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
@@ -816,7 +816,7 @@ export default function Home() {
 
         {/* ═══ 3. EXPERTISE ═══ */}
         <section id="expertise" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1760, margin: "0 auto", padding: "120px clamp(24px, 3vw, 72px)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Expertise
@@ -846,7 +846,7 @@ export default function Home() {
 
         {/* ═══ 4. TESTIMONIALS ═══ */}
         <section style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1760, margin: "0 auto", padding: "120px clamp(24px, 3vw, 72px)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Testimonials
@@ -873,7 +873,7 @@ export default function Home() {
 
         {/* ═══ 5. SERVICES ═══ */}
         <section id="services" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="sec-pad" style={{ maxWidth: 1760, margin: "0 auto", padding: "120px clamp(24px, 3vw, 72px)" }}>
+          <div className="sec-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "120px 40px" }}>
             <div style={{ marginBottom: 72 }}>
               <p style={{ fontFamily: M, fontSize: 13, color: "var(--accent)", letterSpacing: "0.02em", marginBottom: 20 }}>
                 <span style={{ opacity: 0.5, marginRight: 6 }}>&gt;</span>Pricing
@@ -923,7 +923,7 @@ export default function Home() {
         {/* ═══ 6. LET'S BUILD TOGETHER ═══ */}
         <section id="contact" style={{ position: "relative", borderTop: "1px solid var(--border)", overflow: "hidden", minHeight: 520 }}>
           <StarField />
-          <div className="cta-pad" style={{ maxWidth: 1760, margin: "0 auto", padding: "160px clamp(24px, 3vw, 72px)", position: "relative", zIndex: 2 }}>
+          <div className="cta-pad" style={{ maxWidth: 1440, margin: "0 auto", padding: "160px 40px", position: "relative", zIndex: 2 }}>
             <div className="cta-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 60, alignItems: "center" }}>
               <div>
                 <motion.h2 initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}
@@ -957,8 +957,8 @@ export default function Home() {
         </section>
 
         {/* ═══ FOOTER ═══ */}
-        <footer id="about" style={{ borderTop: "1px solid var(--border)", padding: "40px clamp(24px, 3vw, 72px)" }}>
-          <div className="footer-inner" style={{ maxWidth: 1760, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
+        <footer id="about" style={{ borderTop: "1px solid var(--border)", padding: "40px 40px" }}>
+          <div className="footer-inner" style={{ maxWidth: 1440, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontFamily: D, fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: "-0.05em" }}>AR</span>
