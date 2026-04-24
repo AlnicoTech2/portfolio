@@ -3,17 +3,18 @@
 :root {
   --black: #000000;
   --white: #ffffff;
-  --gray-100: #f0f0f0;
-  --gray-300: #aaaaaa;
-  --gray-500: #666666;
-  --gray-700: #333333;
-  --gray-900: #111111;
-  --border: rgba(255,255,255,0.08);
-  --border-hover: rgba(255,255,255,0.15);
-  --glass: rgba(255,255,255,0.03);
-  --glass-hover: rgba(255,255,255,0.06);
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --text-dim: #6b6b6b;
+  --text-mid: #aaaaaa;
+  --accent: #3fffb1;
+  --accent-dim: rgba(63, 255, 177, 0.55);
+  --accent-ghost: rgba(63, 255, 177, 0.15);
+  --yellow: #d6ff3b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-bright: rgba(255, 255, 255, 0.18);
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "Outfit", sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
